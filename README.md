@@ -182,6 +182,7 @@ Copia de esta carpeta "django_default" lo que te interese aplicar a tu proyecto,
   Este settings está diseñado de tal forma que usa las variables del .env de docker.
 - **auto_start_migrate**<br>
   Carpeta necesaria en tu proyecto, para que funcione el comando "make django_migrations_start"
+  También necesita la variable "AUTOSTARTMIGRATE" en project/settings.py
 
 
 
@@ -320,8 +321,8 @@ Un asset es el tipo de ficheros que se cargan al navegador, osea, los img, css, 
 En nuestro settings.py bajo el comentario \"# Rutas" veremos las rutas que Django va a usar para la ruta de assets estáticos.<br>
 
 Los assets inicialmente serán para los vendors y subaplicaciones, tal como puede ser debug_toolbar y bootstrap.<br>
-Pero también incluiremos aquí los assets de nuestro projecto, podría ser en **volumes/django/assets/static/my.project**<br>
-Cuando Django esté en modo **prod**, ejecutará automaticamente `collectstatic`.
+Pero también incluiremos aquí los assets de nuestro projecto, que en este entorno se ha decido que sea **volumes/django/assets/static/project**<br>
+Cuando Django esté en modo **prod**, ejecutará automaticamente `collectstatic`.<br>
 `collectstatic` copia la ruta local static a la ruta externa static.<br>
 En esta caso de **volumes/django/assets/static** =>**volumes/static**<br>
 Lo que llamo ruta externa static es lo que nginx va a usar.<br>
@@ -333,7 +334,13 @@ En el caso de que django cargue un asset en modo 'dev' y en modo 'prod' nos devu
 
 **En volumes/django/assets/media**
 
-Lo usaremos para los ficheros que se suben con "upload",  ficheros de usuarios y etc.
+Lo usaremos para los ficheros que se suben con "upload",  ficheros de usuarios y etc.<br>
+
+Es necesario que .gitinore excluya todos los archivos de /volumes/django/assets, pero incluyendo aquella carpeta que uses para tus assets.<br>
+El .gitignore actual, describe lo siguiente:<br>
+assets/media<br>
+assets/static/*<br>
+!assets/static/project<br>
 
 
 
