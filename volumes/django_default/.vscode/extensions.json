@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+            "visualstudioexptteam.vscodeintellicode",
+            "batisteo.vscode-django",
+            "ms-python.vscode-pylance",
+            "ms-python.python",
+            "donjayamanne.python-environment-manager",
+            "donjayamanne.python-extension-pack",
+            "kevinrose.vsc-python-indent",
+            "ms-ceintl.vscode-language-pack-es",
+            "wayou.vscode-todo-highlight",
+            "rangav.vscode-thunder-client",
+            "formulahendry.auto-rename-tag"
+      ]        
+}
