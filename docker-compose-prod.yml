@@ -1,0 +1,102 @@
+#####################################################
+#
+# CREADO POR PEDRO REINA ROJAS (apachebcn@gmail.com)
+#
+#####################################################
+
+
+version: "3"
+
+services:
+
+    redis:
+        container_name: "${CONTAINER_NAME}_redis"
+        image: redis:latest
+        restart: always
+        volumes:
+            - ./volumes/redis:/data
+        environment:
+            - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
+        expose:
+            - "6379"
+        command:
+            - 'redis-server'
+            - '--databases 1'
+            - '--maxmemory ${REDIS_MAXMEM:-10000mb}'
+            - '--maxmemory-policy ${REDIS_POLICY:-noeviction}'
+            # - '--loglevel ${REDIS_LOGLEVEL:-debug}'
+
+    db:
+        container_name: "${CONTAINER_NAME}_db"
+        image: postgres:${POSTGRES_VERSION}
+        volumes:
+            - ./volumes/db-data-psql:/var/lib/postgresql/data
+        restart: always
+        command: postgres -c 'max_connections=20000'
+        environment:
+            - DB_HOST=db
+            - DB_PORT=${DB_PORT}
+            - DB_NAME=${DB_NAME}
+            - DB_USER=${DB_USER}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+            - pg_stat_statements.track=all
+            - log_statement.track=all
+            - log_statement=all
+        ports:
+            - 0.0.0.0:${EXPOSE_PUBLIC_PORT_DB}:5432
+
+    django:
+        container_name: "${CONTAINER_NAME}_django"
+        image: django-build
+        ports:
+            - 0.0.0.0:${EXPOSE_PUBLIC_DEV_PORT_DJANGO_JUPITER}:8888  # JUPITER PORT
+        build:
+            context: ./bin/
+            dockerfile: dockerfile
+            args:
+                - MODE=prod
+        hostname: "${DJANGO_HOSTNAME}"
+        volumes:
+            - ./volumes/django:/srv/project
+        depends_on:
+            - db
+            - redis
+        links:
+            - db
+            - redis
+        restart: always
+        environment:
+            - PGDATA="/var/lib/postgresql/data"
+            - DB_HOST=db
+            - DB_ENGINE=${DB_ENGINE}
+            - DB_PORT=${DB_PORT}
+            - DB_NAME=${DB_NAME}
+            - DB_USER=${DB_USER}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+            - MODE=prod
+            - DJANGO_DEBUG=${DJANGO_DEBUG}
+            - DJANGO_DEBUG_TOOLBAR=${DJANGO_DEBUG_TOOLBAR}
+            - DJANGO_PTVSD_DEBUG=${DJANGO_PTVSD_DEBUG}
+
+    nginx:
+        container_name: "${CONTAINER_NAME}_nginx"
+        image: nginx:1.15
+        ports:
+            - "0.0.0.0:${EXPOSE_PUBLIC_PROD_PORT_NGINX}:8000"
+            - "0.0.0.0:${EXPOSE_PUBLIC_PROD_PORT_NGINX_SSL}:4430"
+        depends_on:
+            - django
+        volumes:
+            - ./volumes/django:/srv/project
+            - ./volumes/static:/srv/static
+            - ./nginx-config-prod/nginx.tmpl:/etc/nginx/conf.d/nginx.tmpl
+            - ./nginx-config-prod/localhost.crt:/etc/ssl/certs/localhost.crt
+            - ./nginx-config-prod/localhost.key:/etc/ssl/private/localhost.key
+        command: /bin/sh -c "envsubst < /etc/nginx/conf.d/nginx.tmpl > /etc/nginx/nginx.conf && exec nginx -g 'daemon off;'"
+        restart: always
+        environment:
+            - NGINX_SERVER_NAME=localhost
+            - NGINX_CRT_NAME=localhost
+            - NGINX_KEY_NAME=localhost

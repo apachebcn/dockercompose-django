@@ -1,0 +1,11 @@
+.env
+BAK/*
+*.bak
+docker-compose.yml
+IS-IN-MODE-DEV
+IS-IN-MODE-PROD
+docker-compose.override.yml*
+docker-compose-traefik*
+docker-compose-override*
+volumes/*
+!volumes/django_default/*

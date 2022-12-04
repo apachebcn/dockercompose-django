@@ -1,0 +1,83 @@
+#####################################################
+#
+# CREADO POR PEDRO REINA ROJAS (apachebcn@gmail.com)
+#
+#####################################################
+
+
+version: "3"
+
+services:
+
+    redis:
+        container_name: "${CONTAINER_NAME}_redis"
+        image: redis:latest
+        restart: always
+        volumes:
+            - ./volumes/redis:/data
+        environment:
+            - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL,CONFIG
+        expose:
+            - "6379"
+        command:
+            - 'redis-server'
+            - '--databases 1'
+            - '--maxmemory ${REDIS_MAXMEM:-10000mb}'
+            - '--maxmemory-policy ${REDIS_POLICY:-noeviction}'
+            # - '--loglevel ${REDIS_LOGLEVEL:-debug}'
+
+    db:
+        container_name: "${CONTAINER_NAME}_db"
+        image: postgres:${POSTGRES_VERSION}
+        volumes:
+            - ./volumes/db-data-psql:/var/lib/postgresql/data
+        restart: always
+        command: postgres -c 'max_connections=20000'
+        environment:
+            - DB_HOST=db
+            - DB_PORT=${DB_PORT}
+            - DB_NAME=${DB_NAME}
+            - DB_USER=${DB_USER}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+            - pg_stat_statements.track=all
+            - log_statement.track=all
+            - log_statement=all
+        ports:
+            - 0.0.0.0:${EXPOSE_PUBLIC_PORT_DB}:5432
+
+    django:
+        container_name: "${CONTAINER_NAME}_django"
+        image: django-build
+        build:
+            context: ./bin/
+            dockerfile: dockerfile
+            args:
+                - MODE=dev
+        hostname: "${DJANGO_HOSTNAME}"
+        volumes:
+            - ./volumes/django:/srv/project
+        depends_on:
+            - db
+            - redis
+        links:
+            - db
+            - redis
+        restart: always
+        environment:
+            - PGDATA="/var/lib/postgresql/data"
+            - DB_HOST=db
+            - DB_ENGINE=${DB_ENGINE}
+            - DB_PORT=${DB_PORT}
+            - DB_NAME=${DB_NAME}
+            - DB_USER=${DB_USER}
+            - DB_PASSWORD=${DB_PASSWORD}
+            - POSTGRES_PASSWORD=${DB_PASSWORD}
+            - MODE=dev
+            - DJANGO_DEBUG=${DJANGO_DEBUG}
+            - DJANGO_DEBUG_TOOLBAR=${DJANGO_DEBUG_TOOLBAR}
+            - DJANGO_PTVSD_DEBUG=${DJANGO_PTVSD_DEBUG}
+        ports:
+            - 0.0.0.0:${EXPOSE_PUBLIC_DEV_PORT_DJANGO_JUPITER}:8888  # JUPITER PORT
+            - 0.0.0.0:${EXPOSE_PUBLIC_DEV_PORT_DJANGO_RUNSERVER}:8000  # RUNSERVER PORT
+            - 0.0.0.0:${EXPOSE_PUBLIC_DEV_PORT_PTVSD}:3000  # PTVSD DEBUG PORT
