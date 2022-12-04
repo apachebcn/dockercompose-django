@@ -7,5 +7,6 @@ IS-IN-MODE-PROD
 docker-compose.override.yml*
 docker-compose-traefik*
 docker-compose-override*
-volumes/*
+volumes/*/*
+volumes/django
 !volumes/django_default/*
